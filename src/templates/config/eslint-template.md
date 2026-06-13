@@ -1,0 +1,40 @@
+# ESLint Configuration
+
+```json
+{
+  "env": {
+    "node": true,
+    "es2021": true,
+    "jest": true
+  },
+  "extends": ["eslint:recommended", "prettier"],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-console": [
+      "warn",
+      {
+        "allow": ["warn", "error"]
+      }
+    ],
+    "no-unused-vars": "warn",
+    "prefer-const": "warn",
+    "no-var": "error"
+  }
+}
+```
+
+## Usage
+
+Add to your `package.json` scripts:
+
+```json
+{
+  "scripts": {
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
+  }
+}
+```
