@@ -6,7 +6,7 @@
 
 ✨ **Interactive Project Setup**
 
-- Choose your preferred framework (Express, Fastify, Hapi)
+- Express-first backend scaffold with production-ready defaults
 - Select databases (MongoDB, Prisma, MySQL, PostgreSQL)
 - TypeScript or JavaScript support
 - Optional features: ESLint, Prettier, Docker, JWT, Environment variables, Husky
@@ -101,14 +101,13 @@ If the directory is not empty, you'll be asked for confirmation before proceedin
 When you run the CLI, you'll be asked:
 
 1. **Project Name** - What do you want to call your project?
-2. **Framework** - Choose between Express, Fastify, or Hapi
-3. **Databases** - Select one or more databases:
+2. **Databases** - Select one or more databases:
    - MongoDB
    - Prisma ORM
    - MySQL
    - PostgreSQL
-4. **TypeScript** - Would you like to use TypeScript? (recommended)
-5. **Additional Features**:
+3. **TypeScript** - Would you like to use TypeScript? (recommended)
+4. **Additional Features**:
    - ESLint for code linting
    - Prettier for code formatting
    - Docker for containerization
@@ -124,7 +123,6 @@ When you run the CLI, you'll be asked:
 ╚════════════════════════════════════════════════════════╝
 
 ? What is your project name? my-api
-? Choose a framework: Express.js
 ? Select databases (choose at least one):
   ◉ MongoDB
   ◉ Prisma ORM
@@ -239,13 +237,13 @@ All generated projects include these npm scripts:
 
 ```json
 {
-  "dev": "ts-node src/index.ts", // Development with hot-reload
-  "build": "tsc", // Build TypeScript to JavaScript
+  "dev": "tsx watch src/index.ts", // Development with hot-reload
+  "build": "tsc -p tsconfig.json", // Build TypeScript to JavaScript
   "start": "node dist/index.js", // Run production build
   "test": "jest", // Run tests
-  "lint": "eslint src/", // Check code style
-  "lint:fix": "eslint src/ --fix", // Fix code style issues
-  "format": "prettier --write src/**/*.ts" // Format code
+  "lint": "eslint src", // Check code style
+  "lint:fix": "eslint src --fix", // Fix code style issues
+  "format": "prettier --write \"src/**/*.{js,ts,json,md}\"" // Format code
 }
 ```
 
@@ -295,11 +293,9 @@ The CLI includes templates for:
 - **MySQL** - Relational database
 - **PostgreSQL** - Advanced relational database
 
-## Supported Frameworks
+## Supported Framework
 
-- **Express.js** - Most popular Node.js framework
-- **Fastify** - High-performance framework
-- **Hapi** - Rich plugin system framework
+- **Express.js** - Production-ready default with security and logging middleware
 
 ## Tips & Best Practices
 

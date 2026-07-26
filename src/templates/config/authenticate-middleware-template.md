@@ -7,11 +7,10 @@ import asyncHandler from "../utils/async-catch.js";
 
 export const authenticate = asyncHandler(async (req, res, next) => {
   try {
-    const token =
-      req.cookies?.accessToken ||
-      req.header("Authorization")?.replace("Bearer ", "");
+    const authHeader = req.header("Authorization") || "";
+    const [scheme, token] = authHeader.split(" ");
 
-    if (!token) {
+    if (scheme !== "Bearer" || !token) {
       throw new ApiError(401, "Unauthorized request");
     }
 

@@ -1,7 +1,7 @@
 # Main Entry Point Template
 
 ```javascript
-import app from "./app";
+import app from "./app.js";
 {
   {
     MONGODB_IMPORT;
@@ -20,11 +20,6 @@ const startServer = async () => {
 
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
-      {
-        {
-          MONGODB_SUCCESS;
-        }
-      }
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error.message);

@@ -1,6 +1,9 @@
 const inquirer = require("inquirer");
 const colors = require("./colors");
 
+const listLabel = (name, desc) =>
+  `${colors.primary(name)} ${colors.dim(`(${desc})`)}`;
+
 const prompts = {
   askProjectName: async () => {
     const answers = await inquirer.prompt([
@@ -25,64 +28,130 @@ const prompts = {
     const answers = await inquirer.prompt([
       {
         type: "list",
-        name: "framework",
-        message: colors.primary("Choose a framework:"),
+        name: "language",
+        message: colors.primary("Choose project language:"),
+        loop: false,
         choices: [
-          { name: "Express.js", value: "express" },
-          { name: "Fastify", value: "fastify" },
-          { name: "Hapi", value: "hapi" },
+          {
+            name: listLabel("TypeScript", "recommended for backend projects"),
+            short: "TypeScript",
+            value: "typescript",
+          },
+          {
+            name: listLabel("JavaScript", "faster setup, no compilation"),
+            short: "JavaScript",
+            value: "javascript",
+          },
         ],
-        default: "express",
+        default: "typescript",
       },
       {
         type: "checkbox",
         name: "databases",
-        message: colors.primary("Select databases (choose at least one):"),
+        message: colors.primary(
+          "Select databases (space to toggle, enter to confirm):",
+        ),
+        pageSize: 8,
+        loop: false,
         choices: [
-          { name: "MongoDB", value: "mongodb", checked: true },
-          { name: "Prisma ORM", value: "prisma" },
-          { name: "MySQL", value: "mysql" },
-          { name: "PostgreSQL", value: "postgresql" },
+          {
+            name: listLabel("MongoDB", "Mongoose + document database"),
+            short: "MongoDB",
+            value: "mongodb",
+            checked: true,
+          },
+          {
+            name: listLabel("Prisma ORM", "Type-safe ORM workflow"),
+            short: "Prisma ORM",
+            value: "prisma",
+          },
+          {
+            name: listLabel("MySQL", "Relational database"),
+            short: "MySQL",
+            value: "mysql",
+          },
+          {
+            name: listLabel("PostgreSQL", "Advanced relational database"),
+            short: "PostgreSQL",
+            value: "postgresql",
+          },
         ],
         validate: (choice) => {
           return choice.length >= 1 || "Select at least one database";
         },
       },
       {
-        type: "confirm",
-        name: "useTypeScript",
-        message: colors.primary("Use TypeScript?"),
-        default: true,
-      },
-      {
         type: "checkbox",
         name: "features",
-        message: colors.primary("Select additional features:"),
+        message: colors.primary(
+          "Select optional features (space to toggle, enter to confirm):",
+        ),
+        pageSize: 10,
+        loop: false,
         choices: [
-          { name: "ESLint", value: "eslint", checked: true },
-          { name: "Prettier", value: "prettier", checked: true },
-          { name: "Docker", value: "docker" },
-          { name: "JWT Authentication", value: "jwt" },
-          { name: "Environment Variables (.env)", value: "dotenv" },
-          { name: "Git Hooks (Husky)", value: "husky" },
+          {
+            name: listLabel("ESLint", "linting and code quality"),
+            short: "ESLint",
+            value: "eslint",
+            checked: true,
+          },
+          {
+            name: listLabel("Prettier", "consistent formatting"),
+            short: "Prettier",
+            value: "prettier",
+            checked: true,
+          },
+          {
+            name: listLabel("Docker", "containerized local/dev runtime"),
+            short: "Docker",
+            value: "docker",
+          },
+          {
+            name: listLabel("JWT Authentication", "token auth scaffolding"),
+            short: "JWT Authentication",
+            value: "jwt",
+          },
+          {
+            name: listLabel("Environment Variables", ".env support"),
+            short: "Environment Variables",
+            value: "dotenv",
+          },
+          {
+            name: listLabel("Testing (Jest)", "unit/integration test setup"),
+            short: "Testing (Jest)",
+            value: "jest",
+          },
+          {
+            name: listLabel("Git Hooks (Husky)", "pre-commit checks"),
+            short: "Git Hooks (Husky)",
+            value: "husky",
+          },
         ],
       },
     ]);
-    return answers;
+    const useTypeScript = answers.language === "typescript";
+
+    return {
+      framework: "express",
+      useTypeScript,
+      ...answers,
+    };
   },
 
   confirmSetup: async (config) => {
-    console.log("\n" + colors.secondary("📋 Setup Summary:"));
-    console.log(colors.dim("─".repeat(50)));
-    console.log(`  Framework: ${colors.info(config.framework)}`);
-    console.log(`  Databases: ${colors.info(config.databases.join(", "))}`);
+    const featuresLabel = config.features.length
+      ? config.features.join(", ")
+      : "None";
+
+    console.log("\n" + colors.secondary("Setup Summary"));
+    console.log(colors.dim("─".repeat(64)));
+    console.log(`  Runtime     : ${colors.info("Node.js + Express")}`);
     console.log(
-      `  TypeScript: ${colors.info(config.useTypeScript ? "Yes" : "No")}`,
+      `  Language    : ${colors.info(config.useTypeScript ? "TypeScript" : "JavaScript")}`,
     );
-    console.log(
-      `  Features: ${colors.info(config.features.join(", ") || "None")}`,
-    );
-    console.log(colors.dim("─".repeat(50)) + "\n");
+    console.log(`  Databases   : ${colors.info(config.databases.join(", "))}`);
+    console.log(`  Features    : ${colors.info(featuresLabel)}`);
+    console.log(colors.dim("─".repeat(64)) + "\n");
 
     const answer = await inquirer.prompt([
       {

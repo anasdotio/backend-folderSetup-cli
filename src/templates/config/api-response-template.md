@@ -1,14 +1,18 @@
 # API Response Template
 
 ```javascript
-export const ApiResponse = (statusCode, data, message = "Success") => {
+export const apiResponse = ({
+  statusCode = 200,
+  data = null,
+  message = "Success",
+}) => {
   return {
+    success: statusCode < 400,
     statusCode,
     data,
     message,
-    success: statusCode < 400,
   };
 };
 
-export default ApiResponse;
+export default apiResponse;
 ```

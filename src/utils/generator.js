@@ -34,25 +34,31 @@ class ProjectGenerator {
   async generate() {
     try {
       await fs.ensureDir(this.projectPath);
-      logger.success(`Creating project in ${this.projectPath}`);
+      logger.info(`Project path: ${this.projectPath}`);
 
-      // Create directory structure
-      await this.createDirectories();
+      await this.runStep("Creating directory structure", async () => {
+        await this.createDirectories();
+      });
 
-      // Create package.json
-      await this.createPackageJson();
+      await this.runStep("Generating package.json", async () => {
+        await this.createPackageJson();
+      });
 
-      // Create configuration files
-      await this.createConfigFiles();
+      await this.runStep("Writing configuration files", async () => {
+        await this.createConfigFiles();
+      });
 
-      // Create source files
-      await this.createSourceFiles();
+      await this.runStep("Writing source files", async () => {
+        await this.createSourceFiles();
+      });
 
-      // Create utils files
-      await this.createUtilsFiles();
+      await this.runStep("Writing utility files", async () => {
+        await this.createUtilsFiles();
+      });
 
-      // Create middleware files
-      await this.createMiddlewareFiles();
+      await this.runStep("Writing middleware files", async () => {
+        await this.createMiddlewareFiles();
+      });
 
       logger.success("Project structure created successfully!");
       logger.info(`Next steps:`);
@@ -71,6 +77,18 @@ class ProjectGenerator {
     }
   }
 
+  async runStep(label, task) {
+    const spinner = logger.startLoader(label);
+
+    try {
+      await task();
+      spinner.succeed(label);
+    } catch (error) {
+      spinner.fail(`${label} failed`);
+      throw error;
+    }
+  }
+
   async createDirectories() {
     const dirs = [
       "src",
@@ -80,14 +98,15 @@ class ProjectGenerator {
       "src/middleware",
       "src/utils",
       "src/config",
-      "tests",
     ];
+
+    if (this.config.features.includes("jest")) {
+      dirs.push("tests");
+    }
 
     for (const dir of dirs) {
       await fs.ensureDir(path.join(this.projectPath, dir));
     }
-
-    logger.info("Directories created");
   }
 
   async createPackageJson() {
@@ -99,49 +118,89 @@ class ProjectGenerator {
         spaces: 2,
       },
     );
-    logger.info("package.json created");
   }
 
   buildPackageJson() {
+    const scripts = {
+      dev: this.config.useTypeScript
+        ? "tsx watch src/index.ts"
+        : "node --watch server.js",
+      build: this.config.useTypeScript
+        ? "tsc -p tsconfig.json"
+        : "echo 'No build step for JavaScript project'",
+      start: this.config.useTypeScript
+        ? "node dist/index.js"
+        : "node server.js",
+    };
+
+    if (this.config.features.includes("jest")) {
+      scripts.test = "jest";
+    }
+
+    if (this.config.features.includes("eslint")) {
+      scripts.lint = "eslint src";
+      scripts["lint:fix"] = "eslint src --fix";
+    }
+
+    if (this.config.features.includes("prettier")) {
+      scripts.format = 'prettier --write "src/**/*.{js,ts,json,md}"';
+    }
+
+    if (this.config.features.includes("husky")) {
+      scripts.prepare = "husky install";
+    }
+
+    if (this.config.databases.includes("prisma")) {
+      scripts["prisma:generate"] = "prisma generate";
+      scripts["prisma:migrate"] = "prisma migrate dev";
+    }
+
     const base = {
       name: path.basename(this.projectPath),
       version: "1.0.0",
       description: "Backend project generated with init-backend",
-      main: this.config.useTypeScript ? "dist/index.js" : "src/index.js",
-      scripts: {
-        dev: this.config.useTypeScript
-          ? "ts-node src/index.ts"
-          : "node src/index.js",
-        build: this.config.useTypeScript ? "tsc" : "echo 'No build needed'",
-        start: this.config.useTypeScript
-          ? "node dist/index.js"
-          : "node src/index.js",
-        test: "jest",
-      },
+      private: true,
+      type: "module",
+      main: this.config.useTypeScript ? "dist/index.js" : "server.js",
+      scripts,
       keywords: [this.config.framework, "backend"],
       author: "",
       license: "MIT",
+      engines: {
+        node: ">=18",
+      },
       dependencies: this.buildDependencies(),
       devDependencies: this.buildDevDependencies(),
     };
+
+    if (this.config.features.includes("husky")) {
+      base["lint-staged"] = {
+        "*.{js,ts,json,md}": ["prettier --write"],
+      };
+    }
 
     return base;
   }
 
   buildDependencies() {
+    const frameworkPackages = {
+      express: "^4.19.2",
+      fastify: "^4.28.1",
+      hapi: "^21.3.12",
+    };
+
     const deps = {
-      [this.config.framework]: "^4.18.0",
+      [this.config.framework]: frameworkPackages[this.config.framework],
     };
 
     if (this.config.framework === "express") {
       deps.cors = "^2.8.5";
+      deps.helmet = "^7.1.0";
+      deps.morgan = "^1.10.0";
     }
 
     if (this.config.databases.includes("mongodb")) {
       deps.mongoose = "^8.0.0";
-      // Always include dotenv and cors for MongoDB
-      deps.dotenv = "^16.3.1";
-      deps.cors = "^2.8.5";
     }
 
     if (this.config.databases.includes("prisma")) {
@@ -165,25 +224,47 @@ class ProjectGenerator {
       deps["bcrypt"] = "^5.1.1";
     }
 
+    const dotenvRequired =
+      this.config.features.includes("dotenv") ||
+      this.config.databases.length > 0 ||
+      this.config.features.includes("jwt");
+
+    if (dotenvRequired) {
+      deps.dotenv = "^16.3.1";
+    }
+
     return deps;
   }
 
   buildDevDependencies() {
-    const devDeps = {
-      jest: "^29.7.0",
-      "jest-cli": "^29.7.0",
-    };
+    const devDeps = {};
+
+    if (this.config.features.includes("jest")) {
+      devDeps.jest = "^29.7.0";
+      devDeps["jest-cli"] = "^29.7.0";
+    }
 
     if (this.config.useTypeScript) {
       Object.assign(devDeps, {
         typescript: "^5.2.2",
-        "ts-node": "^10.9.1",
+        tsx: "^4.19.1",
         "@types/node": "^20.5.0",
         "@types/express": "^4.17.20",
+        "@types/cors": "^2.8.17",
+        "@types/morgan": "^1.9.9",
       });
+
+      if (this.config.features.includes("jest")) {
+        devDeps["@types/jest"] = "^29.5.12";
+      }
 
       if (this.config.databases.includes("mongodb")) {
         devDeps["@types/mongoose"] = "^5.11.97";
+      }
+
+      if (this.config.features.includes("jwt")) {
+        devDeps["@types/jsonwebtoken"] = "^9.0.6";
+        devDeps["@types/bcrypt"] = "^5.0.2";
       }
     }
 
@@ -208,11 +289,11 @@ class ProjectGenerator {
       devDeps["dotenv-cli"] = "^7.3.0";
     }
 
-    return devDeps;
-  }
+    if (this.config.databases.includes("prisma")) {
+      devDeps.prisma = "^5.0.0";
+    }
 
-  async createUtilsFiles() {
-    await fs.writeFile();
+    return devDeps;
   }
 
   async createConfigFiles() {
@@ -257,10 +338,13 @@ class ProjectGenerator {
     // Dockerfile
     if (this.config.features.includes("docker")) {
       const dockerfile = await this.loadTemplate("docker-template.md");
+      const dockerCompose = await this.loadTemplate(
+        "docker-compose-template.md",
+      );
       await fs.writeFile(path.join(this.projectPath, "Dockerfile"), dockerfile);
       await fs.writeFile(
         path.join(this.projectPath, "docker-compose.yml"),
-        dockerfile,
+        dockerCompose,
       );
     }
 
@@ -273,8 +357,6 @@ class ProjectGenerator {
         prismaSchema,
       );
     }
-
-    logger.info("Configuration files created");
   }
 
   async createSourceFiles() {
@@ -285,19 +367,17 @@ class ProjectGenerator {
     const mainTemplate = await this.loadTemplate("index-template.md");
     const mainContent = this.replaceTemplate(mainTemplate, {
       MONGODB_IMPORT: this.config.databases.includes("mongodb")
-        ? "import { connectDB } from './config/database';"
+        ? 'import { connectDB } from "./config/database.js";'
         : "",
       MONGODB_CONNECT: this.config.databases.includes("mongodb")
         ? "await connectDB();"
         : "",
-      MONGODB_SUCCESS: this.config.databases.includes("mongodb")
-        ? "console.log(`📡 Connected to MongoDB`);"
-        : "",
     });
-    await fs.writeFile(
-      path.join(this.projectPath, `src/index.${ext}`),
-      mainContent,
-    );
+    const entryPath = this.config.useTypeScript
+      ? path.join(this.projectPath, `src/index.${ext}`)
+      : path.join(this.projectPath, "server.js");
+
+    await fs.writeFile(entryPath, mainContent);
 
     // App file
     const appTemplate = await this.loadTemplate("app-template.md");
@@ -314,10 +394,16 @@ class ProjectGenerator {
     const configTemplate = await this.loadTemplate("config-template.md");
     const configContent = this.replaceTemplate(configTemplate, {
       MONGODB_CONFIG: this.config.databases.includes("mongodb")
-        ? "mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/mydb',"
+        ? 'mongodbUri: process.env.MONGODB_URI || "mongodb://localhost:27017/mydb",'
         : "",
+      DATABASE_URL_CONFIG:
+        this.config.databases.includes("prisma") ||
+        this.config.databases.includes("mysql") ||
+        this.config.databases.includes("postgresql")
+          ? 'databaseUrl: process.env.DATABASE_URL || "",'
+          : "",
       JWT_CONFIG: this.config.features.includes("jwt")
-        ? "jwtSecret: process.env.JWT_SECRET || 'your-secret-key',"
+        ? 'jwtSecret: process.env.JWT_SECRET || "change-this-in-production",'
         : "",
     });
     await fs.writeFile(
@@ -334,25 +420,6 @@ class ProjectGenerator {
         path.join(this.projectPath, `src/config/database.${ext}`),
         mongoTemplate,
       );
-
-      // Sample MongoDB model
-      const userTemplate = await this.loadTemplate("user-model-template.md");
-      const userContent = this.replaceTemplate(userTemplate, {
-        TYPESCRIPT_INTERFACE: this.config.useTypeScript
-          ? `interface IUser extends Document {
-  name: string;
-  email: string;
-  password: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}`
-          : "",
-        TYPESCRIPT_TYPE: this.config.useTypeScript ? "<IUser>" : "",
-      });
-      await fs.writeFile(
-        path.join(this.projectPath, `src/models/User.${ext}`),
-        userContent,
-      );
     }
 
     // Prisma database file
@@ -365,8 +432,6 @@ class ProjectGenerator {
         prismaConnTemplate,
       );
     }
-
-    logger.info("Source files created");
   }
 
   async createUtilsFiles() {
@@ -396,8 +461,6 @@ class ProjectGenerator {
       path.join(this.projectPath, `src/utils/async-catch.${ext}`),
       asyncCatchTemplate,
     );
-
-    logger.info("Utils files created");
   }
 
   async createMiddlewareFiles() {
@@ -422,8 +485,6 @@ class ProjectGenerator {
       path.join(this.projectPath, `src/middleware/global-error-handler.${ext}`),
       errorHandlerTemplate,
     );
-
-    logger.info("Middleware files created");
   }
 }
 
