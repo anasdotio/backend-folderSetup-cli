@@ -98,6 +98,8 @@ class ProjectGenerator {
       "src/middleware",
       "src/utils",
       "src/config",
+      "src/services",
+      "src/dao",
     ];
 
     if (this.config.features.includes("jest")) {
@@ -213,10 +215,6 @@ class ProjectGenerator {
 
     if (this.config.databases.includes("postgresql")) {
       deps.pg = "^8.11.0";
-    }
-
-    if (this.config.features.includes("dotenv")) {
-      deps.dotenv = "^16.3.1";
     }
 
     if (this.config.features.includes("jwt")) {
@@ -383,6 +381,12 @@ class ProjectGenerator {
     const appTemplate = await this.loadTemplate("app-template.md");
     const appContent = this.replaceTemplate(appTemplate, {
       PROJECT_NAME: projectName,
+      AUTH_ROUTES_IMPORT: this.config.features.includes("jwt")
+        ? 'import authRoutes from "./routes/auth.routes.js";'
+        : "",
+      AUTH_ROUTES: this.config.features.includes("jwt")
+        ? 'app.use("/api/auth", authRoutes);'
+        : "",
     });
     await fs.writeFile(
       path.join(this.projectPath, `src/app.${ext}`),
@@ -432,6 +436,48 @@ class ProjectGenerator {
         prismaConnTemplate,
       );
     }
+
+    if (this.config.features.includes("jwt")) {
+      await this.createAuthFiles();
+    }
+  }
+
+  async createAuthFiles() {
+    const ext = this.config.useTypeScript ? "ts" : "js";
+
+    const userModelTemplate = await this.loadTemplate("user-model-template.md");
+    await fs.writeFile(
+      path.join(this.projectPath, `src/models/user.model.${ext}`),
+      userModelTemplate,
+    );
+
+    const userDaoTemplate = await this.loadTemplate("user-dao-template.md");
+    await fs.writeFile(
+      path.join(this.projectPath, `src/dao/user.dao.${ext}`),
+      userDaoTemplate,
+    );
+
+    const authServiceTemplate = await this.loadTemplate(
+      "auth-service-template.md",
+    );
+    await fs.writeFile(
+      path.join(this.projectPath, `src/services/auth.service.${ext}`),
+      authServiceTemplate,
+    );
+
+    const authControllerTemplate = await this.loadTemplate(
+      "auth-controller-template.md",
+    );
+    await fs.writeFile(
+      path.join(this.projectPath, `src/controllers/auth.controller.${ext}`),
+      authControllerTemplate,
+    );
+
+    const authRouteTemplate = await this.loadTemplate("auth-route-template.md");
+    await fs.writeFile(
+      path.join(this.projectPath, `src/routes/auth.routes.${ext}`),
+      authRouteTemplate,
+    );
   }
 
   async createUtilsFiles() {

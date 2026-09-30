@@ -1,11 +1,9 @@
-# MongoDB User Model Template
+# User Model Template
 
 ```javascript
-import mongoose{{MONGOOSE_TYPES_IMPORT}} from "mongoose";
+import mongoose from "mongoose";
 
-{{TYPESCRIPT_INTERFACE}}
-
-const userSchema = new Schema(
+const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -29,10 +27,10 @@ const userSchema = new Schema(
       select: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-export const User = mongoose.model{{MODEL_GENERIC}}("User", userSchema);
+const User = mongoose.model("User", userSchema);
 
 export default User;
 ```
