@@ -9,6 +9,7 @@ import morgan from "morgan";
 import ApiError from "./utils/api-error.js";
 import apiResponse from "./utils/api-response.js";
 import globalErrorHandler from "./middleware/global-error-handler.js";
+{{AUTH_ROUTES_IMPORT}}
 
 dotenv.config();
 
@@ -41,7 +42,7 @@ app.get("/health", (req, res) => {
   );
 });
 
-
+{{AUTH_ROUTES}}
 app.use((req, res, next) => {
   next(new ApiError(404, `Route not found: ${req.originalUrl}`));
 });

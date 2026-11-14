@@ -1,6 +1,10 @@
 const fs = require("fs-extra");
 const path = require("path");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
 const logger = require("./logger");
+
+const execFileAsync = promisify(execFile);
 
 class ProjectGenerator {
   constructor(projectPath, config, useCurrentDir = false) {
@@ -44,6 +48,10 @@ class ProjectGenerator {
         await this.createPackageJson();
       });
 
+      await this.runStep("Installing dependencies", async () => {
+        await this.installDependencies();
+      });
+
       await this.runStep("Writing configuration files", async () => {
         await this.createConfigFiles();
       });
@@ -64,12 +72,10 @@ class ProjectGenerator {
       logger.info(`Next steps:`);
 
       if (this.useCurrentDir) {
-        console.log(`  1. npm install`);
-        console.log(`  2. npm run dev`);
+        console.log(`  1. npm run dev`);
       } else {
         console.log(`  1. cd ${path.basename(this.projectPath)}`);
-        console.log(`  2. npm install`);
-        console.log(`  3. npm run dev`);
+        console.log(`  2. npm run dev`);
       }
     } catch (error) {
       logger.error(`Failed to generate project: ${error.message}`);
@@ -184,6 +190,26 @@ class ProjectGenerator {
     return base;
   }
 
+  async installDependencies() {
+    const isWindows = process.platform === "win32";
+    const npmCommand = isWindows
+      ? process.env.ComSpec || "cmd.exe"
+      : "npm";
+    const npmArgs = isWindows
+      ? ["/d", "/s", "/c", "npm.cmd install --no-audit --no-fund"]
+      : ["install", "--no-audit", "--no-fund"];
+
+    try {
+      await execFileAsync(npmCommand, npmArgs, {
+        cwd: this.projectPath,
+        stdio: "inherit",
+      });
+    } catch (error) {
+      const details = error.stderr || error.message;
+      throw new Error(`npm install failed: ${details.trim()}`);
+    }
+  }
+
   buildDependencies() {
     const frameworkPackages = {
       express: "^4.19.2",
@@ -218,7 +244,7 @@ class ProjectGenerator {
     }
 
     if (this.config.features.includes("jwt")) {
-      deps["jsonwebtoken"] = "^9.1.0";
+      deps["jsonwebtoken"] = "^9.0.2";
       deps["bcrypt"] = "^5.1.1";
     }
 

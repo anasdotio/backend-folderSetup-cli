@@ -73,8 +73,8 @@ init-backend new .
 
 ```bash
 init-backend create my-api
-# Creates a folder 'my-api' with complete project structure
-# Next steps: cd my-api && npm install && npm run dev
+# Creates a folder 'my-api', installs dependencies, and creates package-lock.json
+# Next steps: cd my-api && npm run dev
 ```
 
 #### Option 2: Setup in Current Directory
@@ -83,8 +83,8 @@ init-backend create my-api
 mkdir my-api
 cd my-api
 init-backend create .
-# Sets up the project in the current directory
-# Next steps: npm install && npm run dev
+# Sets up the project in the current directory and installs dependencies
+# Next steps: npm run dev
 ```
 
 Or if the directory is empty:
@@ -151,6 +151,7 @@ When you run the CLI, you'll be asked:
 ✓ Creating project in /home/user/my-api
 ✓ Directories created
 ✓ package.json created
+✓ Dependencies installed and package-lock.json created
 ✓ Configuration files created
 ✓ Source files created
 
@@ -159,8 +160,7 @@ Location: /home/user/my-api
 
 Next steps:
   1. cd my-api
-  2. npm install
-  3. npm run dev
+  2. npm run dev
 ```
 
 ## Generated Project Structure
@@ -191,12 +191,15 @@ my-api/
 
 ## Next Steps After Creation
 
-### 1. Install Dependencies
+### 1. Start the Development Server
 
 ```bash
 cd my-api
-npm install
+npm run dev
 ```
+
+Dependencies are installed automatically during project creation, and npm creates
+`package-lock.json` in the generated project.
 
 ### 2. Setup Environment Variables
 
@@ -205,13 +208,7 @@ cp .env.example .env
 # Edit .env with your actual values
 ```
 
-### 3. Start Development Server
-
-```bash
-npm run dev
-```
-
-### 4. Run Linting and Formatting
+### 3. Run Linting and Formatting
 
 ```bash
 # Lint your code

@@ -26,6 +26,13 @@ const ProjectGenerator = require("../src/utils/generator");
     "src/routes/auth.routes.js",
   ];
 
+  const packageJson = await fs.readJSON(path.join(tempDir, "package.json"));
+  assert.equal(packageJson.dependencies.jsonwebtoken, "^9.0.2");
+  assert.ok(
+    await fs.pathExists(path.join(tempDir, "package-lock.json")),
+    "npm install should create package-lock.json",
+  );
+
   for (const file of requiredFiles) {
     const fullPath = path.join(tempDir, file);
     assert.ok(await fs.pathExists(fullPath), `Missing generated file: ${file}`);
